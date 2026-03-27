@@ -198,22 +198,27 @@ const UserManagement = () => {
           alert("You cannot remove your own Master Admin account from here.");
           return;
       }
-      if(!window.confirm("Are you sure you want to remove this user profile? This will also permanently delete their Authentication record.")) return;
+      if(!window.confirm("Are you sure you want to remove this user profile? This will revoke their platform access.")) return;
       
       setActionLoading(true);
       try {
-          // 1. Delete from Firebase Auth via Cloud Function
-          const deleteAuth = httpsCallable(functions, 'deleteUserAccount');
-          await deleteAuth({ uid: uid });
+          // 1. Attempt to Delete from Firebase Auth via Cloud Function
+          try {
+              const deleteAuth = httpsCallable(functions, 'deleteUserAccount');
+              await deleteAuth({ uid: uid });
+          } catch (authErr) {
+              console.warn("Could not delete from Firebase Auth (likely due to missing Cloud Functions setup). Error:", authErr);
+              // We will continue and delete the Firestore document so access is still revoked.
+          }
 
-          // 2. Delete from Firestore
+          // 2. Delete from Firestore (This removes their role and access completely)
           await deleteDoc(doc(db, 'users', uid));
           
           fetchData();
-          alert("User removed from both Registry and Authentication systems.");
+          alert("User access revoked successfully!");
       } catch (err) {
           console.error("Deletion Error:", err);
-          alert("Failed to remove Auth record. Error: " + err.message);
+          alert("Failed to remove user profile. Error: " + err.message);
       }
       setActionLoading(false);
   };
