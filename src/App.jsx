@@ -14,9 +14,21 @@ import './styles/global.css';
 
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
-  const { currentUser, loading } = useAuth();
+  const { currentUser, userData, loading } = useAuth();
   
-  if (loading) return <div>Loading...</div>;
+  // Protect against rendering before Firestore data is fetched
+  if (loading || (currentUser && !userData)) {
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', background: '#0f172a', color: 'white' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem' }}>
+          <div style={{ border: '3px solid rgba(99,102,241,0.2)', borderTopColor: '#6366f1', borderRadius: '50%', width: '30px', height: '30px', animation: 'spin 1s linear infinite' }}></div>
+          <div style={{ color: 'var(--text-dim)' }}>Loading workspace...</div>
+        </div>
+        <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
+      </div>
+    );
+  }
+
   if (!currentUser) return <Navigate to="/login" />;
   
   return (
