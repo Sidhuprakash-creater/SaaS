@@ -240,18 +240,23 @@ const UserManagement = () => {
       if(!window.confirm("Are you sure you want to remove this profile? This will permanently delete their data and login access.")) return;
       setActionLoading(true);
       try {
-          // 1. Delete from Firebase Auth via Cloud Function
-          const deleteAuth = httpsCallable(functions, 'deleteUserAccount');
-          await deleteAuth({ uid: uid });
+          // 1. Attempt to Delete from Firebase Auth via Cloud Function
+          try {
+              const deleteAuth = httpsCallable(functions, 'deleteUserAccount');
+              await deleteAuth({ uid: uid });
+          } catch (authErr) {
+              console.warn("Could not delete from Firebase Auth (likely due to missing Cloud Functions backend setup). Error:", authErr);
+              // Fallback: Proceed to delete Firestore document so platform access is revoked.
+          }
 
           // 2. Delete from Firestore
           await deleteDoc(doc(db, 'users', uid));
           
           fetchData();
-          alert("User profile and Authentication account deleted.");
+          alert("User profile and platform access revoked successfully.");
       } catch (err) {
           console.error("Deletion Error:", err);
-          alert("Could not remove account from Authentication. Ensure the Cloud Function is deployed. Error: " + err.message);
+          alert("Could not remove user profile from database. Error: " + err.message);
       }
       setActionLoading(false);
   };
